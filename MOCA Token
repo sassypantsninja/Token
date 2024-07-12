@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PirateToken is ERC20, Ownable {
+    constructor() ERC20("PirateToken", "PTK") {
+        _mint(msg.sender, 1000000 * 10 ** decimals());
+    }
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+}
+
+contract PirateNation is ERC721, Ownable {
+    uint256 public pirateCount;
+    uint256 public shipCount;
+    PirateToken public pirateToken;
+
+    struct Pirate {
+        string name;
+        uint256 strength;
+        uint256 shipId;
+    }
+
+    struct Ship {
+        string name;
+        uint256 capacity;
+    }
+
+    mapping(uint256 => Pirate) public pirates;
+    mapping(uint256 => Ship) public ships;
+    mapping(uint256 => uint256) public shipPirateCount;
+
+    event PirateCreated(uint256 indexed pirateId, string name, uint256 strength);
+    event ShipCreated(uint256 indexed shipId, string name, uint256 capacity);
+    event TreasureFound(address indexed finder, uint256 amount);
+
+    constructor(address pirateTokenAddress) ERC721("PirateNation", "PIRATE") {
+        pirateToken = PirateToken(pirateTokenAddress);
+    }
+
+    function createPirate(string memory name, uint256 strength) external onlyOwner {
+        pirateCount++;
+        pirates[pirateCount] = Pirate(name, strength, 0);
+        _safeMint(msg.sender, pirateCount);
+        emit PirateCreated(pirateCount, name, strength);
+    }
+
+    function createShip(string memory name, uint256 capacity) external onlyOwner {
+        shipCount++;
+        ships[shipCount] = Ship(name, capacity);
+        emit ShipCreated(shipCount, name, capacity);
+    }
+
+    function assignPirateToShip(uint256 pirateId, uint256 shipId) external onlyOwner {
+        require(_exists(pirateId), "Pirate does not exist");
+        require(shipPirateCount[shipId] < ships[shipId].capacity, "Ship is at full capacity");
+
+        Pirate storage pirate = pirates[pirateId];
+        pirate.shipId = shipId;
+        shipPirateCount[shipId]++;
+    }
+
+    function findTreasure(uint256 pirateId) external {
+        require(ownerOf(pirateId) == msg.sender, "You do not own this pirate");
+
+        Pirate storage pirate = pirates[pirateId];
+        uint256 treasureAmount = pirate.strength * 10;
+
+        pirateToken.mint(msg.sender, treasureAmount);
+        emit TreasureFound(msg.sender, treasureAmount);
+    }
+}
