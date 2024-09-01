@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+// Define the MemeToken contract
+contract MemeToken is ERC20, Ownable {
+    // Initial supply of the token
+    uint256 private constant INITIAL_SUPPLY = 1_000_000 * 10 ** 18; // 1 million tokens, with 18 decimal places
+
+    // Constructor to initialize the token with a name and symbol, and mint initial supply to the contract deployer
+    constructor() ERC20("MemeToken", "MEME") {
+        _mint(msg.sender, INITIAL_SUPPLY);
+    }
+
+    // Optional: Function to mint new tokens (only accessible by the contract owner)
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
+
+    // Optional: Function to burn tokens (only accessible by the token holder)
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
+}
